@@ -25,7 +25,6 @@ Jak vytvořit svůj repozitář
 4. V sekci „Source“ vyber:
    - **Branch:** `main`  
    - **Folder:** `/ (root)`  
-   (Pokud používáš `/docs`, vyber `main` + `/docs`.)
 5. Ulož. Po chvilce se zobrazí publikovaná URL (např. `https://uzivatel.github.io/repozitar`).
 
 Ukázkový index.html (zdroják)
