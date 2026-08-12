@@ -27,7 +27,7 @@ Jak vytvořit svůj repozitář
    - **Folder:** `/ (root)`  
 5. Ulož. Po chvilce se zobrazí publikovaná URL (např. `https://uzivatel.github.io/repozitar`).
 
-Ukázka GitHub Pages: https://spsmotol.github.io/template/
+Ukázka GitHub Pages: <a href="https://spsmotol.github.io/template/" target="_blank" rel="noopener noreferrer">Ukázka GitHub Pages — otevřít v novém okně</a>
 
 Ukázkový index.html (zdroják)
 ```html
@@ -42,5 +42,4 @@ Ukázkový index.html (zdroják)
   <p>Krátký popis projektu.</p>
 </body>
 </html>
-
-
+```
