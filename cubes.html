@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prostorová představivost – Počítání krychliček</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0f1117; --panel:#181c27; --border:#2a2f42;
+    --accent:#f0c040; --accent2:#4fd1c5;
+    --text:#e8ecf5; --muted:#6b7394;
+    --correct:#48bb78; --wrong:#fc8181;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    padding:2rem 1rem 3rem}
+  header{text-align:center;margin-bottom:2.5rem}
+  header h1{font-size:clamp(1.5rem,4vw,2.4rem);font-weight:800;
+    letter-spacing:-.03em;color:var(--accent)}
+  header p{margin-top:.4rem;color:var(--muted);font-size:.95rem;font-weight:300}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;
+    padding:2rem;width:100%;max-width:680px}
+  .diff-row{display:flex;gap:.6rem;margin-bottom:1.8rem;flex-wrap:wrap}
+  .diff-btn{flex:1;min-width:80px;padding:.5rem 1rem;background:transparent;
+    border:1px solid var(--border);border-radius:8px;color:var(--muted);
+    font-family:'Space Mono',monospace;font-size:.8rem;cursor:pointer;transition:all .2s}
+  .diff-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .diff-btn.active{background:var(--accent);border-color:var(--accent);
+    color:#0f1117;font-weight:700}
+  .canvas-wrap{display:flex;justify-content:center;margin-bottom:1.8rem}
+  #isosvg{border-radius:12px;background:#13172050;display:block}
+  .stats{display:flex;justify-content:space-between;
+    font-family:'Space Mono',monospace;font-size:.78rem;color:var(--muted);
+    margin-bottom:1.6rem;padding:.6rem .8rem;
+    background:#13172080;border-radius:8px;border:1px solid var(--border)}
+  .stats span b{color:var(--text)}
+  .answer-row{display:flex;gap:.8rem;align-items:center;margin-bottom:1rem}
+  .answer-row label{font-size:.9rem;color:var(--muted);white-space:nowrap}
+  .answer-row input[type=number]{width:90px;padding:.55rem .8rem;
+    background:#0f1117;border:1px solid var(--border);border-radius:8px;
+    color:var(--text);font-family:'Space Mono',monospace;font-size:1.1rem;
+    text-align:center;outline:none;transition:border-color .2s}
+  .answer-row input[type=number]:focus{border-color:var(--accent)}
+  .answer-row input[type=number]::-webkit-inner-spin-button{opacity:0}
+  .btn{flex:1;padding:.6rem 1.2rem;border:none;border-radius:8px;
+    font-family:'Sora',sans-serif;font-weight:600;font-size:.9rem;
+    cursor:pointer;transition:all .2s}
+  .btn-check{background:var(--accent);color:#0f1117}
+  .btn-check:hover{filter:brightness(1.1);transform:translateY(-1px)}
+  .btn-new{background:transparent;border:1px solid var(--border);color:var(--muted)}
+  .btn-new:hover{border-color:var(--accent2);color:var(--accent2)}
+  .feedback{min-height:2.2rem;display:flex;align-items:center;
+    font-size:.95rem;font-weight:600;padding:.5rem .8rem;border-radius:8px;
+    opacity:0;transform:translateY(4px);transition:opacity .25s,transform .25s}
+  .feedback.show{opacity:1;transform:translateY(0)}
+  .feedback.correct{background:#1a3328;color:var(--correct);border:1px solid #2d6a52}
+  .feedback.wrong{background:#2d1a1a;color:var(--wrong);border:1px solid #7a3030}
+  .hint-row{margin-top:1rem;text-align:center}
+  .hint-toggle{background:none;border:none;color:var(--muted);font-size:.8rem;
+    cursor:pointer;text-decoration:underline;font-family:'Space Mono',monospace}
+  .hint-toggle:hover{color:var(--accent2)}
+  .hint-box{display:none;margin-top:.8rem;padding:.7rem 1rem;
+    background:#13172080;border:1px dashed var(--border);border-radius:8px;
+    font-size:.82rem;color:var(--muted);line-height:1.6}
+  .hint-box.open{display:block}
+</style>
+</head>
+<body>
+<header>
+  <h1>Počítání krychliček</h1>
+  <p>Kolik krychliček tvoří stavbu v rohu? Pohled je izometrický.</p>
+</header>
+<div class="card">
+  <div class="diff-row">
+    <button class="diff-btn" data-max="2">2×2×2</button>
+    <button class="diff-btn active" data-max="3">3×3×3</button>
+    <button class="diff-btn" data-max="4">4×4×4</button>
+    <button class="diff-btn" data-max="5">5×5×5</button>
+  </div>
+  <div class="canvas-wrap">
+    <svg id="isosvg" width="500" height="400" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+  <div class="stats">
+    <span>Správně: <b id="sCorrect">0</b></span>
+    <span>Chybně: <b id="sWrong">0</b></span>
+    <span>Série: <b id="sStreak">0</b></span>
+  </div>
+  <div class="answer-row">
+    <label>Počet krychliček:</label>
+    <input type="number" id="answer" min="1" max="125" placeholder="?">
+    <button class="btn btn-check" id="btnCheck">Zkontrolovat</button>
+    <button class="btn btn-new"   id="btnNew">Nová stavba</button>
+  </div>
+  <div class="feedback" id="feedback"></div>
+  <div class="hint-row">
+    <button class="hint-toggle" id="hintToggle">▶ Jak počítat? (nápověda)</button>
+    <div class="hint-box" id="hintBox">
+      Stavba leží v rohu. Každý sloupec krychliček má výšku, kterou vidíš po bocích.<br>
+      Spočítej výšky všech sloupců a sečti je — to je celkový počet.
+    </div>
+  </div>
+</div>
+
+<script>
+// ── colours ──────────────────────────────────────────────────
+const C_TOP    = '#e8c040';
+const C_LEFT   = '#b8922e';
+const C_RIGHT  = '#7a5e18';
+const C_STROKE = '#0a0d14';
+const STROKE_W = 1.2;
+
+// ── iso projection ───────────────────────────────────────────
+// grid axes: x = right-front, y = left-front, z = up
+// TX, TY: pixels per unit along x/y diagonal, TZ per unit up
+const TX = 28, TY = 14, TZ = 28;
+
+function isoX(x, y)      { return (x - y) * TX; }
+function isoY(x, y, z)   { return -(x + y) * TY + z * TZ; }
+
+// Return SVG point string "px,py" for grid point (x,y,z)
+function pt(x, y, z) {
+  return `${isoX(x,y).toFixed(2)},${isoY(x,y,z).toFixed(2)}`;
+}
+
+// ── SVG helpers ──────────────────────────────────────────────
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('isosvg');
+
+function makePoly(points, fill) {
+  const el = document.createElementNS(NS, 'polygon');
+  el.setAttribute('points', points.join(' '));
+  el.setAttribute('fill', fill);
+  el.setAttribute('stroke', C_STROKE);
+  el.setAttribute('stroke-width', STROKE_W);
+  // shape-rendering crispEdges removes anti-alias on polygon edges
+  el.setAttribute('shape-rendering', 'crispEdges');
+  return el;
+}
+
+// ── draw one cube ────────────────────────────────────────────
+// Visible faces: TOP (z+1), LEFT (x+1 wall), RIGHT (y+1 wall)
+//
+// SVG <polygon> with shape-rendering="crispEdges" fills the exact
+// mathematical polygon with NO sub-pixel blending on interior —
+// each polygon is a single flat colour.  Adjacent polygons share
+// edges precisely (same coordinate values) so there is no gap or
+// overlap artefact.
+function cubePolygons(x, y, z) {
+  const polys = [];
+
+  // TOP face – 4 corners at z+1
+  // (x,y,z+1)  (x+1,y,z+1)  (x+1,y+1,z+1)  (x,y+1,z+1)
+  polys.push(makePoly([
+    pt(x,   y,   z+1),
+    pt(x+1, y,   z+1),
+    pt(x+1, y+1, z+1),
+    pt(x,   y+1, z+1),
+  ], C_TOP));
+
+  // LEFT face – x+1 wall
+  // (x+1,y,z)  (x+1,y+1,z)  (x+1,y+1,z+1)  (x+1,y,z+1)
+  polys.push(makePoly([
+    pt(x+1, y,   z),
+    pt(x+1, y+1, z),
+    pt(x+1, y+1, z+1),
+    pt(x+1, y,   z+1),
+  ], C_LEFT));
+
+  // RIGHT face – y+1 wall
+  // (x,y+1,z)  (x+1,y+1,z)  (x+1,y+1,z+1)  (x,y+1,z+1)
+  polys.push(makePoly([
+    pt(x,   y+1, z),
+    pt(x+1, y+1, z),
+    pt(x+1, y+1, z+1),
+    pt(x,   y+1, z+1),
+  ], C_RIGHT));
+
+  return polys;
+}
+
+// ── render ───────────────────────────────────────────────────
+let maxN = 3;
+let grid = [];
+
+function render() {
+  // Clear SVG
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const W = +svg.getAttribute('width');
+  const H = +svg.getAttribute('height');
+
+  // Centre: midpoint of the structure footprint in iso space
+  // Leftmost screen point:  isoX(0,maxN)      = -maxN*TX
+  // Rightmost:              isoX(maxN,0)       = +maxN*TX
+  // Top:                    isoY(0,0,maxN)     = +maxN*TZ   (negative py = up)
+  // Bottom:                 isoY(maxN/2,maxN/2,0) ≈ -maxN*TY
+  const cx = W / 2;
+  const cy = H / 2 + maxN * TY * 1.2;
+
+  // Group with translate
+  const g = document.createElementNS(NS, 'g');
+  g.setAttribute('transform', `translate(${cx},${cy})`);
+  svg.appendChild(g);
+
+  // Painter's order: high (x+y) first, then low z first
+  const order = [];
+  for (let x = 0; x < maxN; x++)
+    for (let y = 0; y < maxN; y++)
+      for (let z = 0; z < grid[x][y]; z++)
+        order.push({x, y, z});
+
+  order.sort((a, b) => {
+    const d = (b.x + b.y) - (a.x + a.y);
+    return d !== 0 ? d : a.z - b.z;
+  });
+
+  for (const {x, y, z} of order) {
+    for (const poly of cubePolygons(x, y, z)) {
+      g.appendChild(poly);
+    }
+  }
+}
+
+// ── grid generation ──────────────────────────────────────────
+let correct = 0, wrong = 0, streak = 0, answered = false;
+
+function generateGrid(n) {
+  const g = Array.from({length: n}, () => Array(n).fill(0));
+  g[0][0] = 1 + Math.floor(Math.random() * n);
+  for (let x = 1; x < n; x++)
+    g[x][0] = Math.floor(Math.random() * (g[x-1][0] + 1));
+  for (let y = 1; y < n; y++)
+    g[0][y] = Math.floor(Math.random() * (g[0][y-1] + 1));
+  for (let x = 1; x < n; x++)
+    for (let y = 1; y < n; y++) {
+      const m = Math.min(g[x-1][y], g[x][y-1]);
+      g[x][y] = m > 0 ? Math.floor(Math.random() * (m + 1)) : 0;
+    }
+  return g;
+}
+
+function countCubes(g) { return g.flat().reduce((a,b) => a+b, 0); }
+
+// ── UI ───────────────────────────────────────────────────────
+function newPuzzle() {
+  do { grid = generateGrid(maxN); } while (countCubes(grid) < 2);
+  answered = false;
+  const inp = document.getElementById('answer');
+  inp.value = ''; inp.disabled = false;
+  document.getElementById('btnCheck').disabled = false;
+  hideFeedback();
+  render();
+  inp.focus();
+}
+
+function showFeedback(msg, type) {
+  const el = document.getElementById('feedback');
+  el.textContent = msg;
+  el.className = 'feedback ' + type + ' show';
+}
+function hideFeedback() {
+  document.getElementById('feedback').className = 'feedback';
+}
+function updateStats() {
+  document.getElementById('sCorrect').textContent = correct;
+  document.getElementById('sWrong').textContent   = wrong;
+  document.getElementById('sStreak').textContent  = streak;
+}
+
+document.getElementById('btnCheck').addEventListener('click', () => {
+  if (answered) return;
+  const val = parseInt(document.getElementById('answer').value, 10);
+  if (isNaN(val) || val < 1) { showFeedback('Zadej celé číslo větší než 0.', 'wrong'); return; }
+  const real = countCubes(grid);
+  answered = true;
+  document.getElementById('answer').disabled   = true;
+  document.getElementById('btnCheck').disabled = true;
+  if (val === real) {
+    correct++; streak++;
+    showFeedback(`✓ Správně! Stavba má ${real} krychliček.`, 'correct');
+  } else {
+    wrong++; streak = 0;
+    showFeedback(`✗ Špatně. Správná odpověď je ${real}. Ty jsi zadal(a) ${val}.`, 'wrong');
+  }
+  updateStats();
+});
+
+document.getElementById('btnNew').addEventListener('click', newPuzzle);
+document.getElementById('answer').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btnCheck').click();
+});
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    maxN = parseInt(btn.dataset.max, 10);
+    newPuzzle();
+  });
+});
+document.getElementById('hintToggle').addEventListener('click', () => {
+  const box  = document.getElementById('hintBox');
+  const open = box.classList.toggle('open');
+  document.getElementById('hintToggle').textContent =
+    (open ? '▼' : '▶') + ' Jak počítat? (nápověda)';
+});
+
+newPuzzle();
+</script>
+</body>
+</html>
