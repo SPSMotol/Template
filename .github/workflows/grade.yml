@@ -1,0 +1,42 @@
+name: Autograde
+
+on:
+  push:
+    branches: [ main, master ]    # nebo jiná hlavní větev
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 18
+
+      - name: Install
+        run: npm install
+
+      - name: Run tests
+        id: run_tests
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee test-output.txt
+          echo "::set-output name=exitcode::${PIPESTATUS[0]}"
+
+      - name: Post result as comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const exitCode = parseInt(process.env.EXIT_CODE || '0');
+            const output = require('fs').readFileSync('test-output.txt','utf8');
+            const body = `Autograder report — exit code: ${exitCode}\n\n\`\`\`\n${output}\n\`\`\``;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 1, // pokud chcete komentovat PR/issue. Alternativně vytvořte issue nebo použijte Checks API
+              body
+            });
+        env:
+          EXIT_CODE: ${{ steps.run_tests.outputs.exitcode }}
