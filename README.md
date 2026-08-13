@@ -14,7 +14,7 @@ Jak vytvořit svůj repozitář
   - **Název projektu:**  
   - **Krátký popis:** (max 1–2 věty)  
   - **URL GitHub Pages:**  
-- Funkční web: `index.html` v kořeni nebo `/docs/index.html`.  
+- Funkční web pro větší projekty uložte ve svém osobním GitHub účtu veřejně.  
 - Repozitář musí být **public**.  
 - (Volitelně) `LICENSE`.
 
